@@ -2,8 +2,8 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { config } from './config.js';
 import { resolveLeague, fetchMarket } from './poeninja.js';
-import { findSpikes, markAlerted, updateHistory, buildRecap, recapDue } from './detect.js';
-import { alertEmbed, recapEmbed, send, sendEmbeds } from './discord.js';
+import { findSpikes, markAlerted, updateHistory, buildRecap, recapDue, findTrends, markTrended, trendDue } from './detect.js';
+import { alertEmbed, recapEmbed, trendEmbed, send, sendEmbeds } from './discord.js';
 
 async function loadState(path) {
   try { return JSON.parse(await readFile(path, 'utf8')); } catch { return { league: null, items: {}, lastRecap: null }; }
@@ -24,7 +24,7 @@ async function main() {
   // Changement de league : on repart d'un historique vide et on prévient sur Discord.
   if (state.league !== league) {
     if (state.league) await send(config.webhookUrl, { content: `🆕 Nouvelle league suivie : **${league}** (avant : ${state.league}). Les alertes reprennent dès qu'il y a assez d'historique.` }, config.dryRun);
-    Object.assign(state, { league, items: {}, lastRecap: null });
+    Object.assign(state, { league, items: {}, lastRecap: null, lastTrendSlot: null });
   }
 
   const { entries, divineChaos, errors } = await fetchMarket(league);
@@ -38,6 +38,18 @@ async function main() {
     markAlerted(state, alerts, now);
   }
   console.log(`${alerts.length} alerte(s) envoyée(s).`);
+
+  // Une fois par heure : hausses lentes regroupées dans un seul message.
+  const trendSlot = trendDue(state, now);
+  if (trendSlot) {
+    const trends = findTrends(state, entries, now, config);
+    if (trends.length) {
+      await sendEmbeds(config.webhookUrl, [trendEmbed(trends, config, divineChaos)], config.dryRun);
+      markTrended(state, trends, now);
+    }
+    state.lastTrendSlot = trendSlot;
+    console.log(`${trends.length} tendance(s) signalée(s).`);
+  }
 
   updateHistory(state, entries, now, config);
 

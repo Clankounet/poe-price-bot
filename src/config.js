@@ -21,6 +21,12 @@ export const config = {
   reAlertPct: num(process.env.REALERT_PCT, 25),          // ...sauf s'il a encore bougé de ce % depuis la dernière alerte
   maxAlertsPerRun: num(process.env.MAX_ALERTS, 15),
 
+  // Tendances : une fois par heure, les items en hausse régulière sur plusieurs heures
+  trendPct: num(process.env.TREND_PCT, 20),              // hausse minimale en %
+  trendWindowHours: num(process.env.TREND_WINDOW_H, 6),  // sur cette durée
+  trendCooldownHours: num(process.env.TREND_COOLDOWN_H, 12), // pas de re-signalement avant ce délai (sauf +TREND_PCT de plus)
+  trendTop: num(process.env.TREND_TOP, 15),
+
   // Récap quotidien (heure de Paris)
   recapHour: num(process.env.RECAP_HOUR, 19),
   recapTop: num(process.env.RECAP_TOP, 10),

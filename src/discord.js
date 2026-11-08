@@ -36,6 +36,21 @@ export function recapEmbed(recap, league, divineChaos) {
   };
 }
 
+export function trendEmbed(trends, cfg, divineChaos) {
+  const line = (t) => `\`${sign(t.change).padStart(5)}\` ${t.name} — ${fmtPrice(t.from, divineChaos)} → **${fmtPrice(t.chaos, divineChaos)}** · ${t.listings} annonces`;
+  let desc = '';
+  for (const t of trends) {
+    const l = line(t) + '\n';
+    if ((desc + l).length > 4000) break;
+    desc += l;
+  }
+  return {
+    title: `📊 Hausses sur ${cfg.trendWindowHours} h (≥ +${cfg.trendPct} %)`,
+    description: desc,
+    color: 0xf1c40f,
+  };
+}
+
 export async function send(webhookUrl, payload, dryRun) {
   if (dryRun || !webhookUrl) {
     console.log('[dry-run] Discord :', JSON.stringify(payload, null, 2));

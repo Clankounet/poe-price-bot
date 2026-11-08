@@ -81,11 +81,43 @@ export function buildRecap(state, now, cfg) {
   return { gainers, losers, tracked: rows.length };
 }
 
+// Hausses lentes : +trendPct % sur trendWindowHours, avec un prix déjà en hausse à mi-parcours
+// (pour écarter les pics isolés qui retombent).
+export function findTrends(state, entries, now, cfg) {
+  const windowMs = cfg.trendWindowHours * H;
+  const out = [];
+  for (const e of entries) {
+    if (!isLiquid(e, cfg)) continue;
+    const item = state.items[e.key];
+    if (!item) continue;
+    const base = baselineAt(item.points, now, windowMs);
+    const mid = baselineAt(item.points, now, windowMs / 2);
+    if (!base || !mid || now - base[0] < windowMs * 0.9) continue;
+    const change = pct(base[1], e.chaos);
+    if (change < cfg.trendPct || mid[1] <= base[1] || e.chaos < mid[1]) continue;
+    const last = item.lastTrend;
+    if (last && now - last.ts < cfg.trendCooldownHours * H && pct(last.price, e.chaos) < cfg.trendPct) continue;
+    out.push({ ...e, from: base[1], change, hours: Math.round((now - base[0]) / H) });
+  }
+  out.sort((a, b) => b.change - a.change);
+  return out.slice(0, cfg.trendTop);
+}
+
+export function markTrended(state, trends, now) {
+  for (const t of trends) state.items[t.key].lastTrend = { ts: now, price: t.chaos };
+}
+
 // Date et heure à Paris, pour déclencher le récap une fois par jour.
 export function parisClock(now) {
   const f = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' });
   const p = Object.fromEntries(f.formatToParts(new Date(now)).map((x) => [x.type, x.value]));
   return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
+}
+
+export function trendDue(state, now) {
+  const { date, hour } = parisClock(now);
+  const slot = `${date}T${hour}`;
+  return state.lastTrendSlot !== slot ? slot : null;
 }
 
 export function recapDue(state, now, cfg) {
