@@ -27,7 +27,7 @@ async function main() {
     Object.assign(state, { league, items: {}, lastRecap: null });
   }
 
-  const { entries, divineChaos, errors } = await fetchMarket(league, config);
+  const { entries, divineChaos, errors } = await fetchMarket(league);
   console.log(`League ${league} : ${entries.length} lignes récupérées, 1 div = ${divineChaos ?? '?'}c`);
   if (errors.length) console.warn('Catégories en erreur :\n ' + errors.join('\n '));
   if (entries.length === 0) throw new Error('Aucune donnée poe.ninja : API indisponible ou nom de league incorrect.');
