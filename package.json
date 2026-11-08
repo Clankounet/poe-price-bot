@@ -1,0 +1,13 @@
+{
+  "name": "poe-price-bot",
+  "version": "1.0.0",
+  "description": "Surveille les prix poe.ninja (PoE1) et envoie les spikes + un récap quotidien sur Discord",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "dry": "node src/index.js --dry-run",
+    "test": "node --test"
+  }
+}
