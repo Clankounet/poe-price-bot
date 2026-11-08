@@ -1,0 +1,47 @@
+name: PoE price bot
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: price-bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restaurer l'historique
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: price-state-${{ github.run_id }}
+          restore-keys: price-state-
+
+      - name: Lancer le bot
+        run: node src/index.js
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          LEAGUE: ${{ vars.LEAGUE }}
+          SPIKE_PCT: ${{ vars.SPIKE_PCT }}
+          SPIKE_WINDOW_MIN: ${{ vars.SPIKE_WINDOW_MIN }}
+          MIN_CHAOS: ${{ vars.MIN_CHAOS }}
+          MIN_LISTINGS: ${{ vars.MIN_LISTINGS }}
+          ALERT_DROPS: ${{ vars.ALERT_DROPS }}
+          RECAP_HOUR: ${{ vars.RECAP_HOUR }}
+
+      - name: Sauvegarder l'historique
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: price-state-${{ github.run_id }}
